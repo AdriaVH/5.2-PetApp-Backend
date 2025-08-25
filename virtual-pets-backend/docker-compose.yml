@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.1
+    container_name: virtualpets-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: virtualpets
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

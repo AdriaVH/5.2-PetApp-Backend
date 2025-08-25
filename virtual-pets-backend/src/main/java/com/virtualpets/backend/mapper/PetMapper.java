@@ -9,7 +9,7 @@ public class PetMapper {
         return Pet.builder()
                 .name(dto.name())
                 .type(dto.type())
-                .color(dto.color())
+                .age(dto.age())
                 .build();
     }
 
@@ -18,7 +18,7 @@ public class PetMapper {
                 entity.getId(),
                 entity.getName(),
                 entity.getType(),
-                entity.getColor(),
+                entity.getAge(),
                 entity.getOwner().getUsername()
         );
     }

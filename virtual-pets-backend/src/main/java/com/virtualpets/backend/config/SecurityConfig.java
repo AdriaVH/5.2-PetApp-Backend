@@ -40,14 +40,32 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        // Public endpoints
+                        .requestMatchers(
+                                "/auth/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html",
+                                "/swagger-ui/index.html/**"
+                        ).permitAll()
+
+                        // Pet endpoints (role-based)
                         .requestMatchers(HttpMethod.GET, "/pets/all").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/pets").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/pets").hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/pets/**").hasRole("USER")
                         .requestMatchers(HttpMethod.DELETE, "/pets/**").hasRole("USER")
+
+                        // All other endpoints require authentication
                         .anyRequest().authenticated()
                 )
+                // Exception handling for unauthenticated requests (returns 401)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                )
+                // Add JWT filter
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -60,21 +78,31 @@ public class SecurityConfig {
             protected void doFilterInternal(HttpServletRequest request,
                                             HttpServletResponse response,
                                             FilterChain filterChain) throws ServletException, IOException {
+
                 String header = request.getHeader("Authorization");
+
                 if (header != null && header.startsWith("Bearer ")) {
-                    String token = header.substring(7);
                     try {
+                        String token = header.substring(7);
                         String username = jwtUtil.getUsername(token);
+
                         List<SimpleGrantedAuthority> authorities = jwtUtil.getRoles(token)
                                 .stream()
                                 .map(SimpleGrantedAuthority::new)
                                 .collect(Collectors.toList());
+
                         UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(username, null, authorities);
+
                         SecurityContextHolder.getContext().setAuthentication(authToken);
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        // Clear context and send 401 if token is invalid or expired
+                        SecurityContextHolder.clearContext();
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+                        return; // stop further processing
                     }
                 }
+
                 filterChain.doFilter(request, response);
             }
         };

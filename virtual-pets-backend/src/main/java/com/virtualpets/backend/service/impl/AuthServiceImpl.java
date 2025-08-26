@@ -3,6 +3,8 @@ package com.virtualpets.backend.service.impl;
 import com.virtualpets.backend.dto.request.LoginRequest;
 import com.virtualpets.backend.dto.request.RegisterRequest;
 import com.virtualpets.backend.dto.response.AuthResponse;
+import com.virtualpets.backend.exception.InvalidCredentialsException;
+import com.virtualpets.backend.exception.UserAlreadyExistsException;
 import com.virtualpets.backend.model.Role;
 import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.RoleRepository;
@@ -27,42 +29,39 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse register(RegisterRequest request) {
-        // Assign default role from DB
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            throw new UserAlreadyExistsException("Username already exists");
+        }
+
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseThrow(() -> new RuntimeException("Default role not found"));
 
         User user = User.builder()
                 .username(request.username())
                 .password(passwordEncoder.encode(request.password()))
-                .roles(Set.of(userRole))  // <-- Use Role entity
+                .roles(Set.of(userRole))
                 .build();
 
         userRepository.save(user);
 
-        // Convert Set<Role> to Set<String> for token
-        Set<String> roleNames = user.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet());
-
-        String token = jwtUtil.generateToken(user.getUsername(), roleNames);
-        return new AuthResponse(token, user.getUsername());
+        return new AuthResponse(
+                jwtUtil.generateToken(user.getUsername(), user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())),
+                user.getUsername()
+        );
     }
 
     @Override
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid username or password");
         }
 
-        // Convert Set<Role> to Set<String> for token
-        Set<String> roleNames = user.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet());
-
-        String token = jwtUtil.generateToken(user.getUsername(), roleNames);
-        return new AuthResponse(token, user.getUsername());
+        return new AuthResponse(
+                jwtUtil.generateToken(user.getUsername(), user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())),
+                user.getUsername()
+        );
     }
 }

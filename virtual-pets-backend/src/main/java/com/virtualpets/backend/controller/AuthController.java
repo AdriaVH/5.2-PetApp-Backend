@@ -7,6 +7,7 @@ import com.virtualpets.backend.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,10 +15,15 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Endpoints for user registration and login")
 public class AuthController {
+
     private final AuthService authService;
 
     @PostMapping("/register")
-    @Operation(summary = "Register a new user", description = "Registers a user with ROLE_USER")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Register a new user",
+            description = "Registers a user with ROLE_USER. Returns 409 if the username already exists."
+    )
     public AuthResponse register(@RequestBody RegisterRequest request) {
         return authService.register(request);
     }

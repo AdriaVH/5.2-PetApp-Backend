@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -35,5 +36,5 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     @Schema(description = "Roles assigned to the user")
-    private Set<Role> roles;
+    private Set<Role> roles = new HashSet<>();
 }

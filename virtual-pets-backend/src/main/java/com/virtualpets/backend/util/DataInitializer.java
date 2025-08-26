@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Configuration
@@ -37,8 +38,12 @@ public class DataInitializer {
                 return newAdmin;
             });
 
-            // Always ensure admin has both roles
-            admin.setRoles(Set.of(adminRole, userRole));
+            // Always ensure admin has both roles using a mutable set
+            Set<Role> adminRoles = new HashSet<>();
+            adminRoles.add(adminRole);
+            adminRoles.add(userRole);
+            admin.setRoles(adminRoles);
+
             userRepository.save(admin);
         };
     }

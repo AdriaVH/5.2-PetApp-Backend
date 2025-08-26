@@ -11,30 +11,37 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<?> handleNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of(
-                        "timestamp", LocalDateTime.now(),
-                        "error", ex.getMessage()
-                ));
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException ex) {
+        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedActionException.class)
-    public ResponseEntity<?> handleUnauthorized(UnauthorizedActionException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of(
-                        "timestamp", LocalDateTime.now(),
-                        "error", ex.getMessage()
-                ));
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedActionException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> handleRuntime(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of(
-                        "timestamp", LocalDateTime.now(),
-                        "error", ex.getMessage()
-                ));
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleUserAlreadyExists(UserAlreadyExistsException ex) {
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
+
+    private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
+        Map<String, Object> body = Map.of(
+                "timestamp", LocalDateTime.now(),
+                "status", status.value(),
+                "error", message
+        );
+        return ResponseEntity.status(status).body(body);
     }
 }

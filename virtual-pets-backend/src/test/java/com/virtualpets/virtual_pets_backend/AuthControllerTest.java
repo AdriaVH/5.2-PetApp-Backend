@@ -19,7 +19,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = VirtualPetsBackendApplication.class)
-
 @AutoConfigureMockMvc
 class AuthControllerTest {
 
@@ -36,11 +35,8 @@ class AuthControllerTest {
     private PetRepository petRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
     @BeforeEach
     void setUp() {
-        // Delete pets first to avoid foreign key issues
         petRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -49,15 +45,15 @@ class AuthControllerTest {
     void register_and_login_success() throws Exception {
         RegisterRequest registerRequest = new RegisterRequest("alice", "pass");
 
-        // Register
+        // Register endpoint
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated()) // <-- expect 201
                 .andExpect(jsonPath("$.username").value("alice"))
                 .andExpect(jsonPath("$.token").exists());
 
-        // Login
+        // Login endpoint
         LoginRequest loginRequest = new LoginRequest("alice", "pass");
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

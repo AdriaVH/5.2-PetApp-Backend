@@ -2,6 +2,7 @@ package com.virtualpets.virtual_pets_backend;
 
 import com.virtualpets.backend.dto.request.PetRequest;
 import com.virtualpets.backend.dto.response.PetResponse;
+import com.virtualpets.backend.exception.UnauthorizedActionException;
 import com.virtualpets.backend.model.Pet;
 import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.PetRepository;
@@ -13,6 +14,7 @@ import org.mockito.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -38,6 +40,7 @@ class PetServiceImplTest {
         user = User.builder()
                 .id(1L)
                 .username("alice")
+                .roles(Set.of())
                 .build();
 
         pet = Pet.builder()
@@ -64,36 +67,34 @@ class PetServiceImplTest {
     }
 
     @Test
-    void getUserPets_success() {
+    void getPets_userPets_success() {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
         when(petRepository.findByOwner(user)).thenReturn(List.of(pet));
 
-        List<PetResponse> pets = petService.getUserPets("alice");
+        List<PetResponse> pets = petService.getPets("alice", Set.of()); // empty roles = non-admin
 
         assertEquals(1, pets.size());
-        assertEquals("Buddy", pets.get(0).name());
+        assertEquals("Buddy", pets.getFirst().name());
     }
 
     @Test
-    void updatePet_unauthorized() {
+    void updatePet_unauthorized_throws() {
         PetRequest request = new PetRequest("Buddy", "Dog", 3);
         User anotherUser = User.builder().username("bob").build();
         pet.setOwner(anotherUser);
 
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () ->
-                petService.updatePet(1L, request, "alice")
+        assertThrows(UnauthorizedActionException.class, () ->
+                petService.updatePet(1L, request, "alice", Set.of())
         );
-
-        assertEquals("Unauthorized", ex.getMessage());
     }
 
     @Test
     void deletePet_success() {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
 
-        petService.deletePet(1L, "alice");
+        petService.deletePet(1L, "alice", Set.of());
 
         verify(petRepository, times(1)).delete(pet);
     }

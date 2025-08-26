@@ -15,6 +15,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 
 import java.util.Set;
 
@@ -41,7 +43,6 @@ public class PetControllerTest {
 
     private String userToken;
     private String ownerToken;
-    private Long ownerId;
     private Long petId;
 
     @BeforeAll
@@ -61,7 +62,6 @@ public class PetControllerTest {
         owner.setUsername("alice");
         owner.setPassword("password");
         owner = userRepository.save(owner);
-        ownerId = owner.getId();
 
         // Generate JWTs
         userToken = "Bearer " + jwtUtil.generateToken(user.getUsername(), Set.of("ROLE_USER"));
@@ -107,17 +107,22 @@ public class PetControllerTest {
     @Test
     void createPet_shouldSucceed() throws Exception {
         String newPetJson = """
-                {
-                    "name": "Max",
-                    "age": 2,
-                    "type": "DOG"
-                }
-                """;
+            {
+                "name": "Max",
+                "age": 2,
+                "type": "DOG"
+            }
+            """;
 
         mockMvc.perform(post("/pets")
                         .header("Authorization", ownerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(newPetJson))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated()) // <-- changed from isOk() to isCreated()
+                .andExpect(jsonPath("$.name").value("Max"))
+                .andExpect(jsonPath("$.type").value("DOG"))
+                .andExpect(jsonPath("$.age").value(2))
+                .andExpect(jsonPath("$.ownerUsername").value("alice"));
     }
+
 }

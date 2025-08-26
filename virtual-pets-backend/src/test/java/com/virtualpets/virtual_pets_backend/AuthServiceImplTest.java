@@ -3,6 +3,8 @@ package com.virtualpets.virtual_pets_backend;
 import com.virtualpets.backend.dto.request.LoginRequest;
 import com.virtualpets.backend.dto.request.RegisterRequest;
 import com.virtualpets.backend.dto.response.AuthResponse;
+import com.virtualpets.backend.exception.InvalidCredentialsException;
+import com.virtualpets.backend.exception.UserAlreadyExistsException;
 import com.virtualpets.backend.model.Role;
 import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.RoleRepository;
@@ -13,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -36,19 +37,15 @@ class AuthServiceImplTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    // Use real JwtUtil instead of mocking
+    // Use real JwtUtil
     private final JwtUtil jwtUtil = new JwtUtil();
 
     private Role role;
 
     @BeforeEach
     void setUp() {
-        // Initialize mocks
         MockitoAnnotations.openMocks(this);
-
-        // Manually inject real JwtUtil
         authService = new AuthServiceImpl(userRepository, roleRepository, passwordEncoder, jwtUtil);
-
         role = new Role(1L, "ROLE_USER");
     }
 
@@ -56,14 +53,23 @@ class AuthServiceImplTest {
     void register_success() {
         RegisterRequest request = new RegisterRequest("alice", "pass");
 
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.empty());
         when(roleRepository.findByName("ROLE_USER")).thenReturn(Optional.of(role));
         when(passwordEncoder.encode("pass")).thenReturn("encodedPass");
 
         AuthResponse response = authService.register(request);
 
-        assertNotNull(response.token()); // real token
+        assertNotNull(response.token());
         assertEquals("alice", response.username());
         verify(userRepository, times(1)).save(any(User.class));
+    }
+
+    @Test
+    void register_existingUsername_throws() {
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(new User()));
+        RegisterRequest request = new RegisterRequest("alice", "pass");
+
+        assertThrows(UserAlreadyExistsException.class, () -> authService.register(request));
     }
 
     @Test
@@ -80,9 +86,9 @@ class AuthServiceImplTest {
 
         AuthResponse response = authService.login(request);
 
-        assertNotNull(response.token()); // real token
+        assertNotNull(response.token());
         assertEquals("alice", response.username());
-        verify(userRepository, never()).save(any(User.class)); // login should not save
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -97,8 +103,7 @@ class AuthServiceImplTest {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "encodedPass")).thenReturn(false);
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(request));
-        assertEquals("Invalid credentials", ex.getMessage());
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
 
     @Test
@@ -107,7 +112,6 @@ class AuthServiceImplTest {
 
         when(userRepository.findByUsername("bob")).thenReturn(Optional.empty());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(request));
-        assertEquals("User not found", ex.getMessage());
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
 }

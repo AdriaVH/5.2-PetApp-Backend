@@ -9,13 +9,14 @@ import java.util.List;
 
 public interface PetService {
 
-    PetResponse createPet(PetRequest request, String username);
+    PetResponse createPet(PetRequest petRequest, String username);
 
-    List<PetResponse> getPets(String username, Collection<? extends GrantedAuthority> roles);
+    List<PetResponse> getAllPets(String username, Collection<? extends GrantedAuthority> authorities);
 
-    List<PetResponse> getAllPets();
+    PetResponse getPetById(Long id, String username, Collection<? extends GrantedAuthority> authorities);
 
-    PetResponse updatePet(Long id, PetRequest request, String username, Collection<? extends GrantedAuthority> roles);
+    PetResponse updatePet(Long id, PetRequest petRequest, String username, Collection<? extends GrantedAuthority> authorities);
 
-    void deletePet(Long id, String username, Collection<? extends GrantedAuthority> roles);
+    void deletePet(Long id, String username, Collection<? extends GrantedAuthority> authorities);
+
 }

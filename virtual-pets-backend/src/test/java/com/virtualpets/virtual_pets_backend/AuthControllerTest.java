@@ -6,7 +6,6 @@ import com.virtualpets.backend.dto.request.LoginRequest;
 import com.virtualpets.backend.dto.request.RegisterRequest;
 import com.virtualpets.backend.repository.PetRepository;
 import com.virtualpets.backend.repository.UserRepository;
-import com.virtualpets.backend.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,6 @@ class AuthControllerTest {
     @Autowired
     private PetRepository petRepository;
 
-    @Autowired
     @BeforeEach
     void setUp() {
         petRepository.deleteAll();

@@ -14,13 +14,11 @@ import java.util.stream.Stream;
 
 public class AIProjectPrompter extends JFrame {
 
-    private static final int MAX_CHARS_PER_BATCH = 30000; // adjust for free version
+    private static final int MAX_CHARS_PER_BATCH = 17500; // capped for free tier
     private final File projectFolder;
 
     public AIProjectPrompter() {
         super("AI Project Prompter");
-
-        // Automatically use the root folder of the project
         this.projectFolder = new File(System.getProperty("user.dir"));
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -71,8 +69,7 @@ public class AIProjectPrompter extends JFrame {
 
     private List<File> collectFiles(File folder) {
         try (Stream<Path> paths = Files.walk(folder.toPath())) {
-            return paths
-                    .filter(Files::isRegularFile)
+            return paths.filter(Files::isRegularFile)
                     .map(Path::toFile)
                     .filter(f -> !f.getAbsolutePath().contains(File.separator + "target" + File.separator))
                     .filter(f -> !f.getAbsolutePath().contains(File.separator + "bin" + File.separator))
@@ -92,10 +89,8 @@ public class AIProjectPrompter extends JFrame {
     }
 
     private boolean isLargeStatic(File f) {
-        String[] exts = {".png", ".jpg", ".jpeg", ".gif", ".mp4", ".mov", ".avi"};
-        for (String ext : exts) {
-            if (f.getName().toLowerCase().endsWith(ext)) return true;
-        }
+        String[] exts = {".png",".jpg",".jpeg",".gif",".mp4",".mov",".avi"};
+        for (String ext : exts) if (f.getName().toLowerCase().endsWith(ext)) return true;
         return false;
     }
 
@@ -108,7 +103,10 @@ public class AIProjectPrompter extends JFrame {
             content.append("=== FILE: ").append(f.getAbsolutePath()).append(" ===\n");
             try {
                 List<String> lines = Files.readAllLines(f.toPath());
-                for (String line : lines) content.append(line).append("\n");
+                for (String line : lines) {
+                    String min = minifyLine(line);
+                    if (!min.isEmpty()) content.append(min).append("\n");
+                }
             } catch (IOException e) {
                 content.append("// Error reading file: ").append(e.getMessage()).append("\n");
             }
@@ -120,9 +118,15 @@ public class AIProjectPrompter extends JFrame {
             }
             current.append(content);
         }
-        if (!current.isEmpty()) batches.add(current.toString());
+        if (current.length() > 0) batches.add(current.toString());
 
         return batches;
+    }
+
+    /** Minify a single line: remove comments, collapse spaces, trim */
+    private String minifyLine(String line) {
+        String noComments = line.replaceAll("//.*", "").replaceAll("/\\*.*?\\*/", "");
+        return noComments.trim().replaceAll("\\s+", " ");
     }
 
     private void copyToClipboard(String text) {

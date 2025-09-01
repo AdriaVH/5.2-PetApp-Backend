@@ -7,6 +7,6 @@ public record PetResponse(
         @Schema(description = "Pet ID", example = "1") Long id,
         @Schema(description = "Name of the pet", example = "Bella") String name,
         @Schema(description = "Type of the pet", example = "Dragon") String type,
-        @Schema(description = "Color of the pet", example = "Blue") Integer age,
+        @Schema(description = "Age of the pet", example = "5") Integer age,
         @Schema(description = "Username of the pet owner", example = "john_doe") String ownerUsername
 ) {}

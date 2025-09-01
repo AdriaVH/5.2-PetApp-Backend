@@ -10,98 +10,107 @@ import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.PetRepository;
 import com.virtualpets.backend.repository.UserRepository;
 import com.virtualpets.backend.service.PetService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PetServiceImpl implements PetService {
 
     private final PetRepository petRepository;
     private final UserRepository userRepository;
 
+    public PetServiceImpl(PetRepository petRepository, UserRepository userRepository) {
+        this.petRepository = petRepository;
+        this.userRepository = userRepository;
+    }
+
     @Override
-    @CacheEvict(value = {"allPets", "userPets"}, allEntries = true)
-    public PetResponse createPet(PetRequest request, String username) {
-        User owner = getOwner(username);
+    @Transactional
+    public PetResponse createPet(PetRequest petRequest, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
         Pet pet = Pet.builder()
-                .name(request.name())
-                .type(request.type())
-                .age(request.age())
-                .owner(owner)
+                .name(petRequest.name())
+                .type(petRequest.type())
+                .age(petRequest.age())
+                .owner(user)
                 .build();
 
         return PetMapper.toResponse(petRepository.save(pet));
     }
 
     @Override
-    @Cacheable(value = "userPets", key = "#username")
-    public List<PetResponse> getPets(String username, Collection<? extends GrantedAuthority> roles) {
-        if (isAdmin(roles)) {
-            return getAllPets();
+    @Transactional(readOnly = true)
+    public List<PetResponse> getAllPets(String username, Collection<? extends GrantedAuthority> authorities) {
+        if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            return petRepository.findAll().stream()
+                    .map(PetMapper::toResponse)
+                    .collect(Collectors.toList());
         }
 
-        User owner = getOwner(username);
-        return petRepository.findByOwner(owner).stream()
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        return petRepository.findByOwner(user).stream()
                 .map(PetMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Cacheable(value = "allPets")
-    public List<PetResponse> getAllPets() {
-        return petRepository.findAll().stream()
-                .map(PetMapper::toResponse)
-                .collect(Collectors.toList());
+    @Transactional(readOnly = true)
+    public PetResponse getPetById(Long id, String username, Collection<? extends GrantedAuthority> authorities) {
+        Pet pet = petRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
+
+        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = pet.getOwner().getUsername().equals(username);
+
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedActionException("You are not authorized to view this pet");
+        }
+
+        return PetMapper.toResponse(pet);
     }
 
     @Override
-    @CacheEvict(value = {"allPets", "userPets"}, allEntries = true)
-    public PetResponse updatePet(Long id, PetRequest request, String username, Collection<? extends GrantedAuthority> roles) {
-        Pet pet = getPetById(id);
-        checkAccess(pet, username, roles);
+    @Transactional
+    public PetResponse updatePet(Long id, PetRequest petRequest, String username, Collection<? extends GrantedAuthority> authorities) {
+        Pet pet = petRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
 
-        pet.setName(request.name());
-        pet.setType(request.type());
-        pet.setAge(request.age());
+        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = pet.getOwner().getUsername().equals(username);
+
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedActionException("You are not authorized to update this pet");
+        }
+
+        pet.setName(petRequest.name());
+        pet.setAge(petRequest.age());
+        pet.setType(petRequest.type());
 
         return PetMapper.toResponse(petRepository.save(pet));
     }
 
     @Override
-    @CacheEvict(value = {"allPets", "userPets"}, allEntries = true)
-    public void deletePet(Long id, String username, Collection<? extends GrantedAuthority> roles) {
-        Pet pet = getPetById(id);
-        checkAccess(pet, username, roles);
-        petRepository.delete(pet);
-    }
+    @Transactional
+    public void deletePet(Long id, String username, Collection<? extends GrantedAuthority> authorities) {
+        Pet pet = petRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
 
-    // --- Helpers ---
-    private boolean isAdmin(Collection<? extends GrantedAuthority> roles) {
-        return roles.stream().anyMatch(r -> r.getAuthority().equals("ROLE_ADMIN"));
-    }
+        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = pet.getOwner().getUsername().equals(username);
 
-    private void checkAccess(Pet pet, String username, Collection<? extends GrantedAuthority> roles) {
-        if (!isAdmin(roles) && !pet.getOwner().getUsername().equals(username)) {
-            throw new UnauthorizedActionException("You are not allowed to perform this action");
+        if (!isAdmin && !isOwner) {
+            throw new UnauthorizedActionException("You are not authorized to delete this pet");
         }
-    }
 
-    private User getOwner(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    }
-
-    private Pet getPetById(Long id) {
-        return petRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pet not found"));
+        petRepository.deleteById(id);
     }
 }

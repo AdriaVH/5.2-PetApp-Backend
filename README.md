@@ -164,6 +164,6 @@ Authorization: Bearer <JWT_TOKEN>
 
 ## 👨‍💻 Author
 
-**Your Name**  
+**Adrià Vargas**  
 🔗 [GitHub](https://github.com/AdriaVH)
 

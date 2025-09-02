@@ -2,6 +2,7 @@
 
 A Spring Boot API for managing virtual pets and users, with role-based access (`ROLE_ADMIN`, `ROLE_USER`), JWT authentication, and Swagger/OpenAPI documentation. Includes endpoints for user registration/login and pet management.
 
+## Click to go to [Frontend Project](https://github.com/AdriaVH/5.2-PetApp-Front)
 ---
 
 ## 📌 Requirements

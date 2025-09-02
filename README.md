@@ -4,17 +4,32 @@ A Spring Boot API for managing virtual pets and users, with role-based access (`
 
 ---
 
+## 📌 Requirements
+
+To run this project, you will need:
+
+- **Java 21** (JDK installed)  
+- **Maven** (`./mvnw` wrapper included)  
+- **Docker** (for MySQL container)  
+- Internet connection to download dependencies  
+
+Optional but recommended for testing and Swagger UI:
+
+- Browser to access Swagger/OpenAPI docs
+- Postman or similar API client
+
+---
+
 ## 📦 Tech Stack
 
-- **Java 21**
-- **Spring Boot 3.2.4**
-- **Spring Data JPA**
-- **MySQL 8**
-- **Spring Security**
-- **JWT Authentication**
-- **Lombok**
-- **Swagger/OpenAPI** (`springdoc-openapi-starter-webmvc-ui`)
-- **JUnit 5**, **Mockito** for testing
+- **Java 21**  
+- **Spring Boot 3.2.4**  
+- **Spring Data JPA**  
+- **MySQL 8** (Dockerized)  
+- **Spring Security** + JWT Authentication  
+- **Lombok**  
+- **Swagger/OpenAPI** (`springdoc-openapi-starter-webmvc-ui`)  
+- **JUnit 5** + **Mockito** for tests  
 
 ---
 
@@ -25,18 +40,25 @@ virtual-pets-backend/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/virtualpets/backend/
-│   │   │   ├── dto/
-│   │   │   │   ├── request/      # Request DTOs: LoginRequest, RegisterRequest, PetRequest
-│   │   │   │   └── response/     # Response DTOs: AuthResponse, UserResponse, PetResponse
-│   │   │   ├── exception/        # Custom exceptions and GlobalExceptionHandler
-│   │   │   ├── model/            # Entities: User, Role, Pet
-│   │   │   ├── repository/       # JPA Repositories: UserRepository, RoleRepository, PetRepository
-│   │   │   ├── service/          # Service interfaces: AuthService, UserService, PetService
-│   │   │   ├── service/impl/     # Service implementations
-│   │   │   ├── util/             # Utilities: JwtUtil, DataInitializer
-│   │   │   └── VirtualPetsBackendApplication.java  # Main Spring Boot entry point
-│   └── resources/
-│       └── application.properties
+│   │   │   ├── controller/        # REST endpoints
+│   │   │   ├── dto/               # Request & Response DTOs
+│   │   │   ├── exception/         # Custom exceptions
+│   │   │   ├── model/             # Entities: User, Role, Pet
+│   │   │   ├── repository/        # JPA Repositories
+│   │   │   ├── service/           # Services and implementations
+│   │   │   ├── util/              # JWT & helpers
+│   │   │   └── VirtualPetsBackendApplication.java
+│   └── test/
+│       └── java/com/virtualpets/virtual_pets_backend/
+│           ├── AuthControllerTest.java
+│           ├── AuthServiceImplTest.java
+│           ├── JwtUtilTest.java
+│           ├── PetControllerIntegrationTest.java
+│           ├── PetControllerUnitTest.java
+│           ├── PetRepositoryTest.java
+│           └── PetServiceImplTest.java
+├── docker-compose.yml              # MySQL container
+├── application.properties
 ├── pom.xml
 └── README.md
 ```
@@ -52,21 +74,45 @@ git clone https://github.com/AdriaVH/5.2-PetApp-N1.git
 cd virtual-pets-backend
 ```
 
-### 2️⃣ Configure MySQL
+### 2️⃣ Start MySQL with Docker Compose
 
-Create the database and user:
+A `docker-compose.yml` is included:
 
-```sql
-CREATE DATABASE virtualpets;
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'apppassword';
-GRANT ALL PRIVILEGES ON virtualpets.* TO 'appuser'@'localhost';
-FLUSH PRIVILEGES;
+```yaml
+version: "3.8"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: virtualpets-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: virtualpets
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
 ```
+
+Run:
+
+```bash
+docker-compose up -d
+```
+
+> MySQL will be available on port `3307` (mapped to container’s 3306).
+
+### 3️⃣ Configure Spring Boot
 
 Update `src/main/resources/application.properties`:
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/virtualpets
+spring.datasource.url=jdbc:mysql://localhost:3307/virtualpets
 spring.datasource.username=appuser
 spring.datasource.password=apppassword
 
@@ -75,90 +121,109 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 ```
 
-> `ddl-auto=update` will create/update tables automatically. Ensure MySQL is running before starting the app.
+> `ddl-auto=update` will create/update tables automatically.
 
-### 3️⃣ Run the Application
+### 4️⃣ Run the Application
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-- Default URL: `http://localhost:8080`
+- Default URL: [http://localhost:8080](http://localhost:8080)  
 - Admin credentials auto-created:
-  - Username: `admin`
-  - Password: `admin123`
+  - **Username:** admin  
+  - **Password:** admin123  
 
 ---
 
 ## 🔌 API Endpoints
 
-### 4.1 Authentication
+### Authentication
 
-| Method | Endpoint        | Description               |
-|--------|----------------|---------------------------|
-| POST   | `/auth/register` | Register a new user      |
-| POST   | `/auth/login`    | Login and get JWT token  |
+| Method | Endpoint        | Description             |
+|--------|----------------|-------------------------|
+| POST   | `/auth/register` | Register new user       |
+| POST   | `/auth/login`    | Login & get JWT token   |
 
-**Request/Response DTOs:**
+### Users
 
-- `RegisterRequest`: `username`, `password`  
-- `LoginRequest`: `username`, `password`  
-- `AuthResponse`: `token`, `username`  
+| Method | Endpoint             | Description                  |
+|--------|--------------------|------------------------------|
+| GET    | `/users`            | List all users (admin only)  |
+| GET    | `/users/{username}` | Get user info (self or admin)|
 
----
+### Pets
 
-### 4.2 Users
-
-| Method | Endpoint             | Description                         |
-|--------|--------------------|-------------------------------------|
-| GET    | `/users`            | List all users (admin only)         |
-| GET    | `/users/{username}` | Get user info (self or admin)       |
-
-Response DTO: `UserResponse` with `id`, `username`, `roles`.
-
----
-
-### 4.3 Pets
-
-| Method | Endpoint           | Description                                    |
-|--------|------------------|------------------------------------------------|
-| POST   | `/pets`            | Create a new pet for the authenticated user   |
-| GET    | `/pets`            | List all pets (admin sees all)                |
-| GET    | `/pets/{id}`       | Get pet details (owner or admin)              |
-| PUT    | `/pets/{id}`       | Update pet (owner or admin)                   |
-| DELETE | `/pets/{id}`       | Delete pet (owner or admin)                   |
-
-Request/Response DTO: `PetRequest` (`name`, `type`, `age`) and `PetResponse` (`id`, `name`, `type`, `age`, `ownerUsername`).  
+| Method | Endpoint           | Description                         |
+|--------|------------------|-------------------------------------|
+| POST   | `/pets`            | Create a new pet                     |
+| GET    | `/pets`            | List pets (user sees own, admin sees all) |
+| GET    | `/pets/{id}`       | Get pet details (owner/admin)        |
+| PUT    | `/pets/{id}`       | Update pet (owner/admin)             |
+| DELETE | `/pets/{id}`       | Delete pet (owner/admin)             |
 
 ---
 
-## 🔐 JWT Authentication
+## 🔐 Roles & Authorization
 
-All protected endpoints require a Bearer token in the `Authorization` header:
+| Role         | Permissions                                   |
+|--------------|-----------------------------------------------|
+| `ROLE_USER`  | Access only **their own** pets               |
+| `ROLE_ADMIN` | Full access to **all** pets                  |
 
-```
-Authorization: Bearer <JWT_TOKEN>
-```
-
-- Token contains `username` and `roles`.  
-- Token expiration: 1 hour.
-
----
-
-## 📚 Swagger/OpenAPI Documentation
-
-- Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)  
-- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+> JWT token required for all protected endpoints:  
+> `Authorization: Bearer <JWT_TOKEN>`
 
 ---
 
-## 🧪 Running Tests
+## 🧪 Testing
+
+The project includes **unit and integration tests**:
+
+### Unit Tests
+- `AuthControllerTest` – tests user registration and login endpoints.
+- `AuthServiceImplTest` – tests authentication logic, password encoding, and error cases.
+- `JwtUtilTest` – tests token generation, validation, username/role extraction, and error handling.
+- `PetControllerUnitTest` – verifies pet endpoint logic in isolation.
+- `PetServiceImplTest` – tests pet service CRUD operations and role-based access.
+- `PetRepositoryTest` – tests repository methods like save, findByOwner, delete.
+
+### Integration Tests
+- `PetControllerIntegrationTest` – full API flow including CRUD operations, owner/admin access, and JWT auth.
+
+🧪 Run tests:
 
 ```bash
 ./mvnw test
 ```
 
-- Unit tests with **JUnit 5** and **Mockito**.
+---
+
+## 📚 Swagger/OpenAPI
+
+- **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)  
+- **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+---
+
+## 🐳 Docker Deployment (Optional)
+
+1. Build image:
+
+```bash
+docker build -t virtual-pet-app .
+```
+
+2. Run container:
+
+```bash
+docker run -p 8080:8080 virtual-pet-app
+```
+
+3. Access app:
+
+- [http://localhost:8080](http://localhost:8080)  
+- Swagger docs: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
 ---
 

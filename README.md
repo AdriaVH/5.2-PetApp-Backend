@@ -70,7 +70,7 @@ virtual-pets-backend/
 ### 1️⃣ Clone the repo
 
 ```bash
-git clone https://github.com/AdriaVH/5.2-PetApp-N1.git
+git clone https://github.com/AdriaVH/5.2-PetApp-Backend.git
 cd virtual-pets-backend
 ```
 

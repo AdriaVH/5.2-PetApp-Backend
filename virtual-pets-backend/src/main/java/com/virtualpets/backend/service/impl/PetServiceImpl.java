@@ -37,7 +37,7 @@ public class PetServiceImpl implements PetService {
 
         Pet pet = Pet.builder()
                 .name(petRequest.name())
-                .type(petRequest.type())
+                .type(petRequest.type())  // enum
                 .age(petRequest.age())
                 .owner(user)
                 .build();
@@ -93,7 +93,7 @@ public class PetServiceImpl implements PetService {
 
         pet.setName(petRequest.name());
         pet.setAge(petRequest.age());
-        pet.setType(petRequest.type());
+        pet.setType(petRequest.type());  // enum
 
         return PetMapper.toResponse(petRepository.save(pet));
     }

@@ -3,6 +3,7 @@ package com.virtualpets.virtual_pets_backend;
 import com.virtualpets.backend.dto.request.PetRequest;
 import com.virtualpets.backend.dto.response.PetResponse;
 import com.virtualpets.backend.model.Pet;
+import com.virtualpets.backend.model.Pet.PetType;
 import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.PetRepository;
 import com.virtualpets.backend.repository.UserRepository;
@@ -41,8 +42,8 @@ class PetServiceImplTest {
     @BeforeEach
     void setup() {
         user = User.builder().id(1L).username("bob").password("pass").build();
-        pet = Pet.builder().id(1L).name("Buddy").type("DOG").age(3).owner(user).build();
-        petRequest = new PetRequest("Buddy", "DOG", 3);
+        pet = Pet.builder().id(1L).name("Buddy").type(PetType.DOG).age(3).owner(user).build();
+        petRequest = new PetRequest("Buddy", PetType.DOG, 3);
     }
 
     @Test
@@ -55,7 +56,6 @@ class PetServiceImplTest {
         assertNotNull(response);
         assertEquals("Buddy", response.name());
         assertEquals("bob", response.ownerUsername());
-
         verify(userRepository).findByUsername("bob");
         verify(petRepository).save(any(Pet.class));
     }
@@ -69,8 +69,7 @@ class PetServiceImplTest {
         List<PetResponse> pets = petService.getAllPets("bob", authorities);
 
         assertEquals(1, pets.size());
-        assertEquals("Buddy", pets.getFirst().name());
-
+        assertEquals("Buddy", pets.get(0).name());
         verify(userRepository).findByUsername("bob");
         verify(petRepository).findByOwner(user);
     }
@@ -83,7 +82,7 @@ class PetServiceImplTest {
         List<PetResponse> pets = petService.getAllPets("bob", authorities);
 
         assertEquals(1, pets.size());
-        assertEquals("Buddy", pets.getFirst().name());
+        assertEquals("Buddy", pets.get(0).name());
         verify(petRepository).findAll();
         verifyNoInteractions(userRepository);
     }
@@ -91,27 +90,23 @@ class PetServiceImplTest {
     @Test
     void getPetById_shouldReturnPetWhenOwner() {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
-
         Collection<SimpleGrantedAuthority> authorities = List.of();
         PetResponse response = petService.getPetById(1L, "bob", authorities);
-
         assertEquals("Buddy", response.name());
     }
 
     @Test
     void getPetById_shouldThrowWhenNotOwnerOrAdmin() {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
-
         Collection<SimpleGrantedAuthority> authorities = List.of();
         Exception ex = assertThrows(RuntimeException.class, () ->
                 petService.getPetById(1L, "alice", authorities));
-
         assertTrue(ex.getMessage().contains("not authorized"));
     }
 
     @Test
     void updatePet_shouldUpdateAndReturnPet() {
-        PetRequest updateRequest = new PetRequest("BuddyUpdated", "DOG", 4);
+        PetRequest updateRequest = new PetRequest("BuddyUpdated", PetType.DOG, 4);
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
         when(petRepository.save(any(Pet.class))).thenReturn(pet);
 
@@ -126,9 +121,7 @@ class PetServiceImplTest {
     void deletePet_shouldCallRepository() {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
         Collection<SimpleGrantedAuthority> authorities = List.of();
-
         petService.deletePet(1L, "bob", authorities);
-
         verify(petRepository).deleteById(1L);
     }
 }

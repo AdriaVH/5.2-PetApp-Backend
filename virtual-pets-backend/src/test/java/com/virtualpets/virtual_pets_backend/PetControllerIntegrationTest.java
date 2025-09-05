@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.virtualpets.backend.VirtualPetsBackendApplication;
 import com.virtualpets.backend.dto.request.PetRequest;
 import com.virtualpets.backend.model.Pet;
+import com.virtualpets.backend.model.Pet.PetType;
 import com.virtualpets.backend.model.Role;
 import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.PetRepository;
@@ -88,7 +89,7 @@ public class PetControllerIntegrationTest {
         Pet pet = new Pet();
         pet.setName("Buddy");
         pet.setAge(3);
-        pet.setType("DOG");
+        pet.setType(PetType.DOG);
         pet.setOwner(owner);
         pet = petRepository.save(pet);
         petId = pet.getId();
@@ -96,7 +97,7 @@ public class PetControllerIntegrationTest {
 
     @Test
     void createPet_shouldSucceed_whenUserAuthenticated() throws Exception {
-        PetRequest newPet = new PetRequest("Max", "CAT", 2);
+        PetRequest newPet = new PetRequest("Max", PetType.CAT, 2);
         mockMvc.perform(post("/pets")
                         .header("Authorization", userToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -120,7 +121,7 @@ public class PetControllerIntegrationTest {
         Pet anotherPet = new Pet();
         anotherPet.setName("Fluffy");
         anotherPet.setAge(5);
-        anotherPet.setType("BIRD");
+        anotherPet.setType(PetType.BIRD_OF_PREY);
         anotherPet.setOwner(anotherUser);
         petRepository.save(anotherPet);
 
@@ -132,7 +133,7 @@ public class PetControllerIntegrationTest {
 
     @Test
     void updatePet_shouldSucceed_whenOwnerAuthenticated() throws Exception {
-        PetRequest updatedPet = new PetRequest("New Name", "New Type", 4);
+        PetRequest updatedPet = new PetRequest("New Name", PetType.RABBIT, 4);
         mockMvc.perform(put("/pets/" + petId)
                         .header("Authorization", userToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -143,7 +144,7 @@ public class PetControllerIntegrationTest {
 
     @Test
     void updatePet_shouldSucceed_whenAdminAuthenticated() throws Exception {
-        PetRequest updatedPet = new PetRequest("Admin Update", "Admin Type", 6);
+        PetRequest updatedPet = new PetRequest("Admin Update", PetType.GUINEA_PIG, 6);
         mockMvc.perform(put("/pets/" + petId)
                         .header("Authorization", adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -154,7 +155,7 @@ public class PetControllerIntegrationTest {
 
     @Test
     void updatePet_shouldReturn403_whenNotOwner() throws Exception {
-        PetRequest updatedPet = new PetRequest("Unauthorized", "Unauthorized", 1);
+        PetRequest updatedPet = new PetRequest("Unauthorized", PetType.HAMSTER, 1);
         mockMvc.perform(put("/pets/" + petId)
                         .header("Authorization", anotherUserToken)
                         .contentType(MediaType.APPLICATION_JSON)

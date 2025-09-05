@@ -5,6 +5,7 @@ import com.virtualpets.backend.VirtualPetsBackendApplication;
 import com.virtualpets.backend.controller.PetController;
 import com.virtualpets.backend.dto.request.PetRequest;
 import com.virtualpets.backend.dto.response.PetResponse;
+import com.virtualpets.backend.model.Pet.PetType;
 import com.virtualpets.backend.service.PetService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(PetController.class)
-@ContextConfiguration(classes = VirtualPetsBackendApplication.class) // Add this line
+@ContextConfiguration(classes = VirtualPetsBackendApplication.class)
 public class PetControllerUnitTest {
 
     @Autowired
@@ -44,8 +45,8 @@ public class PetControllerUnitTest {
 
     @BeforeEach
     void setUp() {
-        petResponse = new PetResponse(1L, "Buddy", "Dog", 3, "bob");
-        petRequest = new PetRequest("New Name", "New Type", 4);
+        petResponse = new PetResponse(1L, "Buddy", PetType.DOG, 3, "bob");
+        petRequest = new PetRequest("New Name", PetType.CAT, 4);
     }
 
     @Test
@@ -58,7 +59,8 @@ public class PetControllerUnitTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(petRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Buddy"));
+                .andExpect(jsonPath("$.name").value("Buddy"))
+                .andExpect(jsonPath("$.type").value("DOG")); // verify enum value
     }
 
     @Test
@@ -69,6 +71,7 @@ public class PetControllerUnitTest {
         mockMvc.perform(get("/pets")
                         .with(csrf()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Buddy"));
+                .andExpect(jsonPath("$[0].name").value("Buddy"))
+                .andExpect(jsonPath("$[0].type").value("DOG")); // verify enum value
     }
 }

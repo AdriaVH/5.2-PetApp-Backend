@@ -1,6 +1,5 @@
 package com.virtualpets.backend.model;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,31 +7,37 @@ import lombok.*;
 @Table(name = "pets")
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Pet entity containing information about a pet")
+@Builder
 public class Pet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "Unique identifier of the pet", example = "1")
     private Long id;
 
     @Column(nullable = false)
-    @Schema(description = "Name of the pet", example = "Buddy")
     private String name;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Schema(description = "Type of the pet", example = "Dog")
-    private String type;
+    private PetType type;
 
     @Column(nullable = false)
-    @Schema(description = "Age of the pet in years", example = "3")
     private Integer age;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
-    @Schema(description = "Owner of the pet")
-    private User owner; // <-- Add this
+    private User owner;
+
+    public enum PetType {
+        DOG,
+        CAT,
+        FERRET,
+        RABBIT,
+        GUINEA_PIG,
+        HAMSTER,
+        ORNAMENTAL_FISH,
+        BIRD_OF_PREY
+    }
 }

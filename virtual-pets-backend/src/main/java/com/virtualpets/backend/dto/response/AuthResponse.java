@@ -1,4 +1,9 @@
 package com.virtualpets.backend.dto.response;
 
-public record AuthResponse(String token, String username) {}
+import java.util.Set;
 
+public record AuthResponse(
+        String username,
+        String token,
+        Set<String> roles
+) {}

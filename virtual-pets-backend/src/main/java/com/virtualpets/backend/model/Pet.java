@@ -40,4 +40,13 @@ public class Pet {
         ORNAMENTAL_FISH,
         BIRD_OF_PREY
     }
+
+    // --- domain logic for permissions ---
+    public boolean isOwner(User user) {
+        return this.owner != null && this.owner.equals(user);
+    }
+
+    public boolean canBeManagedBy(User user) {
+        return isOwner(user) || (user != null && user.hasRole("ROLE_ADMIN"));
+    }
 }

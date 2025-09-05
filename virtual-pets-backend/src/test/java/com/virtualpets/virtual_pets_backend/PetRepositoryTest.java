@@ -10,6 +10,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.util.Optional;
@@ -17,11 +19,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@ContextConfiguration(classes = VirtualPetsBackendApplication.class) // Add this line
+@ContextConfiguration(classes = VirtualPetsBackendApplication.class)
 public class PetRepositoryTest {
 
     @Autowired
     private PetRepository petRepository;
+
     @Autowired
     private UserRepository userRepository;
 
@@ -30,14 +33,15 @@ public class PetRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Create and save a user for the pet
-        owner = User.builder().username("testuser").password("password").build();
+        owner = User.builder()
+                .username("testuser")
+                .password("password")
+                .build();
         userRepository.save(owner);
 
-        // Create and save a pet
         pet = Pet.builder()
                 .name("Buddy")
-                .type("Dog")
+                .type(Pet.PetType.DOG)
                 .age(3)
                 .owner(owner)
                 .build();
@@ -51,10 +55,12 @@ public class PetRepositoryTest {
     }
 
     @Test
-    void whenFindByOwner_thenReturnPetsList() {
-        var pets = petRepository.findByOwner(owner);
-        assertThat(pets).hasSize(1);
-        assertThat(pets.get(0).getOwner().getUsername()).isEqualTo("testuser");
+    void whenFindByOwnerWithPageable_thenReturnPetsPage() {
+        Page<Pet> petsPage = petRepository.findByOwner(owner, PageRequest.of(0, 10));
+
+        assertThat(petsPage).isNotNull();
+        assertThat(petsPage.getTotalElements()).isEqualTo(1);
+        assertThat(petsPage.getContent().get(0).getOwner().getUsername()).isEqualTo("testuser");
     }
 
     @Test

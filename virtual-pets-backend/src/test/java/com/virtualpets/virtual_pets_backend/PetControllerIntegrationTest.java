@@ -15,6 +15,8 @@ import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,8 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Set;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(classes = VirtualPetsBackendApplication.class)
 @AutoConfigureMockMvc
@@ -107,12 +108,19 @@ public class PetControllerIntegrationTest {
                 .andExpect(jsonPath("$.ownerUsername").value("bob"));
     }
 
+    // ---- UPDATED FOR PAGINATION ----
     @Test
     void getPets_shouldReturnUsersOwnPets_whenUserAuthenticated() throws Exception {
         mockMvc.perform(get("/pets")
-                        .header("Authorization", userToken))
+                        .header("Authorization", userToken)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Buddy"));
+                .andExpect(jsonPath("$.content[0].name").value("Buddy"))
+                .andExpect(jsonPath("$.content[0].ownerUsername").value("bob"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.number").value(0));
     }
 
     @Test
@@ -126,9 +134,16 @@ public class PetControllerIntegrationTest {
         petRepository.save(anotherPet);
 
         mockMvc.perform(get("/pets")
-                        .header("Authorization", adminToken))
+                        .header("Authorization", adminToken)
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[?(@.name=='Buddy')]").exists())
+                .andExpect(jsonPath("$.content[?(@.name=='Fluffy')]").exists())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.number").value(0));
     }
 
     @Test
@@ -167,14 +182,14 @@ public class PetControllerIntegrationTest {
     void deletePet_shouldSucceed_whenOwnerAuthenticated() throws Exception {
         mockMvc.perform(delete("/pets/" + petId)
                         .header("Authorization", userToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent()); // changed from isOk()
     }
 
     @Test
     void deletePet_shouldSucceed_whenAdminAuthenticated() throws Exception {
         mockMvc.perform(delete("/pets/" + petId)
                         .header("Authorization", adminToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent()); // changed from isOk()
     }
 
     @Test

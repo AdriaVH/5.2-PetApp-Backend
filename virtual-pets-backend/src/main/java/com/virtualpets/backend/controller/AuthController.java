@@ -4,33 +4,28 @@ import com.virtualpets.backend.dto.request.LoginRequest;
 import com.virtualpets.backend.dto.request.RegisterRequest;
 import com.virtualpets.backend.dto.response.AuthResponse;
 import com.virtualpets.backend.service.AuthService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-@RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Endpoints for user registration and login")
 public class AuthController {
 
     private final AuthService authService;
 
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(
-            summary = "Register a new user",
-            description = "Registers a user with ROLE_USER. Returns 409 if the username already exists."
-    )
-    public AuthResponse register(@RequestBody RegisterRequest request) {
+    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Authenticate user", description = "Logs in a user and returns a JWT")
-    public AuthResponse login(@RequestBody LoginRequest request) {
+    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
     }
 }

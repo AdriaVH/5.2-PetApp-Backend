@@ -10,11 +10,11 @@ import com.virtualpets.backend.model.User;
 import com.virtualpets.backend.repository.PetRepository;
 import com.virtualpets.backend.repository.UserRepository;
 import com.virtualpets.backend.service.PetService;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,7 +37,7 @@ public class PetServiceImpl implements PetService {
 
         Pet pet = Pet.builder()
                 .name(petRequest.name())
-                .type(petRequest.type())  // enum
+                .type(petRequest.type())
                 .age(petRequest.age())
                 .owner(user)
                 .build();
@@ -47,31 +47,30 @@ public class PetServiceImpl implements PetService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PetResponse> getAllPets(String username, Collection<? extends GrantedAuthority> authorities) {
-        if (authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-            return petRepository.findAll().stream()
-                    .map(PetMapper::toResponse)
-                    .collect(Collectors.toList());
+    public Page<PetResponse> getAllPets(String username, Pageable pageable) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+
+        if (user.hasRole("ROLE_ADMIN")) {
+            return petRepository.findAll(pageable)
+                    .map(PetMapper::toResponse);
         }
+
+        return petRepository.findByOwner(user, pageable)
+                .map(PetMapper::toResponse);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public PetResponse getPetById(Long id, String username) {
+        Pet pet = petRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        return petRepository.findByOwner(user).stream()
-                .map(PetMapper::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PetResponse getPetById(Long id, String username, Collection<? extends GrantedAuthority> authorities) {
-        Pet pet = petRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
-
-        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        boolean isOwner = pet.getOwner().getUsername().equals(username);
-
-        if (!isAdmin && !isOwner) {
+        if (!pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to view this pet");
         }
 
@@ -80,34 +79,34 @@ public class PetServiceImpl implements PetService {
 
     @Override
     @Transactional
-    public PetResponse updatePet(Long id, PetRequest petRequest, String username, Collection<? extends GrantedAuthority> authorities) {
+    public PetResponse updatePet(Long id, PetRequest petRequest, String username) {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
 
-        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        boolean isOwner = pet.getOwner().getUsername().equals(username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        if (!isAdmin && !isOwner) {
+        if (!pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to update this pet");
         }
 
         pet.setName(petRequest.name());
         pet.setAge(petRequest.age());
-        pet.setType(petRequest.type());  // enum
+        pet.setType(petRequest.type());
 
         return PetMapper.toResponse(petRepository.save(pet));
     }
 
     @Override
     @Transactional
-    public void deletePet(Long id, String username, Collection<? extends GrantedAuthority> authorities) {
+    public void deletePet(Long id, String username) {
         Pet pet = petRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pet not found with id: " + id));
 
-        boolean isAdmin = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        boolean isOwner = pet.getOwner().getUsername().equals(username);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        if (!isAdmin && !isOwner) {
+        if (!pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to delete this pet");
         }
 

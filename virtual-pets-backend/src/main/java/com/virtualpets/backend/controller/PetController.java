@@ -4,8 +4,11 @@ import com.virtualpets.backend.dto.request.PetRequest;
 import com.virtualpets.backend.dto.response.PetResponse;
 import com.virtualpets.backend.service.PetService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,31 +25,50 @@ public class PetController {
     }
 
     @PostMapping
-    public ResponseEntity<PetResponse> createPet(@Valid @RequestBody PetRequest petRequest, Authentication authentication) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(petService.createPet(petRequest, authentication.getName()));
+    @ResponseStatus(HttpStatus.CREATED)
+    public PetResponse createPet(
+            @Valid @RequestBody PetRequest petRequest,
+            Authentication authentication) {
+        String username = authentication.getName();
+        return petService.createPet(petRequest, username);
     }
 
     @GetMapping
-    public ResponseEntity<List<PetResponse>> getAllPets(Authentication authentication) {
-        // Authorization is handled inside the service method
-        return ResponseEntity.ok(petService.getAllPets(authentication.getName(), authentication.getAuthorities()));
+    public Page<PetResponse> getAllPets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir,
+            Authentication authentication) {
+
+        String username = authentication.getName();
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return petService.getAllPets(username, pageable);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PetResponse> getPetById(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(petService.getPetById(id, authentication.getName(), authentication.getAuthorities()));
+    public PetResponse getPetById(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String username = authentication.getName();
+        return petService.getPetById(id, username);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PetResponse> updatePet(@PathVariable Long id, @Valid @RequestBody PetRequest petRequest, Authentication authentication) {
-        // Authorization is handled inside the service method
-        return ResponseEntity.ok(petService.updatePet(id, petRequest, authentication.getName(), authentication.getAuthorities()));
+    public PetResponse updatePet(
+            @PathVariable Long id,
+            @Valid @RequestBody PetRequest petRequest,
+            Authentication authentication) {
+        String username = authentication.getName();
+        return petService.updatePet(id, petRequest, username);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePet(@PathVariable Long id, Authentication authentication) {
-        // Authorization is handled inside the service method
-        petService.deletePet(id, authentication.getName(), authentication.getAuthorities());
-        return ResponseEntity.ok().build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePet(@PathVariable Long id, Authentication authentication) {
+        String username = authentication.getName();
+        petService.deletePet(id, username);
     }
 }

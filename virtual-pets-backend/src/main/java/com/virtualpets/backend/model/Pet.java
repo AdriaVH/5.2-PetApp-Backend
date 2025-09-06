@@ -47,6 +47,6 @@ public class Pet {
     }
 
     public boolean canBeManagedBy(User user) {
-        return isOwner(user) || (user != null && user.hasRole("ROLE_ADMIN"));
+        return !isOwner(user) && (user == null || !user.hasRole("ROLE_ADMIN"));
     }
 }

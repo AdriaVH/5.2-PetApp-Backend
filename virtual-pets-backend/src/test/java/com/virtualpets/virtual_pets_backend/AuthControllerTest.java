@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.virtualpets.backend.VirtualPetsBackendApplication;
 import com.virtualpets.backend.dto.request.LoginRequest;
 import com.virtualpets.backend.dto.request.RegisterRequest;
-import com.virtualpets.backend.dto.response.AuthResponse;
 import com.virtualpets.backend.dto.response.ErrorResponse;
 import com.virtualpets.backend.repository.PetRepository;
 import com.virtualpets.backend.repository.UserRepository;

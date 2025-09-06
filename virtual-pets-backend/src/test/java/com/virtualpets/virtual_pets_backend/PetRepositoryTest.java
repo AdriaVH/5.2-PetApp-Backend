@@ -60,7 +60,7 @@ public class PetRepositoryTest {
 
         assertThat(petsPage).isNotNull();
         assertThat(petsPage.getTotalElements()).isEqualTo(1);
-        assertThat(petsPage.getContent().get(0).getOwner().getUsername()).isEqualTo("testuser");
+        assertThat(petsPage.getContent().getFirst().getOwner().getUsername()).isEqualTo("testuser");
     }
 
     @Test

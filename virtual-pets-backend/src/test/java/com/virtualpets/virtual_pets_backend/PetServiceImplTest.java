@@ -40,7 +40,6 @@ class PetServiceImplTest {
     private PetServiceImpl petService;
 
     private User user;
-    private User adminUser;
     private Pet pet;
     private PetRequest petRequest;
 
@@ -61,7 +60,7 @@ class PetServiceImplTest {
         adminRoles.add(adminRole);
         adminRoles.add(userRole);
 
-        adminUser = User.builder()
+        User adminUser = User.builder()
                 .id(99L)
                 .username("admin")
                 .password("adminpass")
@@ -100,7 +99,7 @@ class PetServiceImplTest {
         Page<PetResponse> pets = petService.getAllPets("bob", PageRequest.of(0, 10));
 
         assertEquals(1, pets.getTotalElements());
-        assertEquals("Buddy", pets.getContent().get(0).name());
+        assertEquals("Buddy", pets.getContent().getFirst().name());
     }
 
     @Test
@@ -118,7 +117,7 @@ class PetServiceImplTest {
         Page<PetResponse> pets = petService.getAllPets("admin", PageRequest.of(0, 10));
 
         assertEquals(1, pets.getTotalElements());
-        assertEquals("Buddy", pets.getContent().get(0).name());
+        assertEquals("Buddy", pets.getContent().getFirst().name());
     }
 
     @Test

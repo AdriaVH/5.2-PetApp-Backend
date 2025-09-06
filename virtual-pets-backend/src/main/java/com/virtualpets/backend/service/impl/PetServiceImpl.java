@@ -15,9 +15,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Service
 public class PetServiceImpl implements PetService {
 
@@ -70,7 +67,7 @@ public class PetServiceImpl implements PetService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        if (!pet.canBeManagedBy(user)) {
+        if (pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to view this pet");
         }
 
@@ -86,7 +83,7 @@ public class PetServiceImpl implements PetService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        if (!pet.canBeManagedBy(user)) {
+        if (pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to update this pet");
         }
 
@@ -106,7 +103,7 @@ public class PetServiceImpl implements PetService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
 
-        if (!pet.canBeManagedBy(user)) {
+        if (pet.canBeManagedBy(user)) {
             throw new UnauthorizedActionException("You are not authorized to delete this pet");
         }
 

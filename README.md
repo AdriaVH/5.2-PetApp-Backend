@@ -3,34 +3,35 @@
 A Spring Boot API for managing virtual pets and users, with role-based access (`ROLE_ADMIN`, `ROLE_USER`), JWT authentication, and Swagger/OpenAPI documentation. Includes endpoints for user registration/login and pet management.
 
 ## Click to go to [Frontend Project](https://github.com/AdriaVH/5.2-PetApp-Front)
+
 ---
 
 ## 📌 Requirements
 
 To run this project, you will need:
 
-- **Java 21** (JDK installed)  
-- **Maven** (`./mvnw` wrapper included)  
-- **Docker** (for MySQL container)  
-- Internet connection to download dependencies  
+* **Java 21** (JDK installed)
+* **Maven** (`./mvnw` wrapper included)
+* **Docker** (for MySQL container)
+* Internet connection to download dependencies
 
 Optional but recommended for testing and Swagger UI:
 
-- Browser to access Swagger/OpenAPI docs
-- Postman or similar API client
+* Browser to access Swagger/OpenAPI docs
+* Postman or similar API client
 
 ---
 
 ## 📦 Tech Stack
 
-- **Java 21**  
-- **Spring Boot 3.2.4**  
-- **Spring Data JPA**  
-- **MySQL 8** (Dockerized)  
-- **Spring Security** + JWT Authentication  
-- **Lombok**  
-- **Swagger/OpenAPI** (`springdoc-openapi-starter-webmvc-ui`)  
-- **JUnit 5** + **Mockito** for tests  
+* **Java 21**
+* **Spring Boot 3.2.4**
+* **Spring Data JPA**
+* **MySQL 8** (Dockerized)
+* **Spring Security** + JWT Authentication
+* **Lombok**
+* **Swagger/OpenAPI** (`springdoc-openapi-starter-webmvc-ui`)
+* **JUnit 5** + **Mockito** for tests
 
 ---
 
@@ -43,7 +44,7 @@ virtual-pets-backend/
 │   │   ├── java/com/virtualpets/backend/
 │   │   │   ├── controller/        # REST endpoints
 │   │   │   ├── dto/               # Request & Response DTOs
-│   │   │   ├── exception/         # Custom exceptions
+│   │   │   ├── exception/         # Custom exceptions & Global Handler
 │   │   │   ├── model/             # Entities: User, Role, Pet
 │   │   │   ├── repository/        # JPA Repositories
 │   │   │   ├── service/           # Services and implementations
@@ -123,6 +124,10 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 ```
 
 > `ddl-auto=update` will create/update tables automatically.
+> The default **admin user** is automatically created at startup:
+>
+> * **Username:** admin
+> * **Password:** admin123
 
 ### 4️⃣ Run the Application
 
@@ -130,10 +135,7 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 ./mvnw spring-boot:run
 ```
 
-- Default URL: [http://localhost:8080](http://localhost:8080)  
-- Admin credentials auto-created:
-  - **Username:** admin  
-  - **Password:** admin123  
+* Default URL: [http://localhost:8080](http://localhost:8080)
 
 ---
 
@@ -141,56 +143,58 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 
 ### Authentication
 
-| Method | Endpoint        | Description             |
-|--------|----------------|-------------------------|
-| POST   | `/auth/register` | Register new user       |
-| POST   | `/auth/login`    | Login & get JWT token   |
+| Method | Endpoint         | Description           |
+| ------ | ---------------- | --------------------- |
+| POST   | `/auth/register` | Register new user     |
+| POST   | `/auth/login`    | Login & get JWT token |
 
 ### Users
 
-| Method | Endpoint             | Description                  |
-|--------|--------------------|------------------------------|
-| GET    | `/users`            | List all users (admin only)  |
-| GET    | `/users/{username}` | Get user info (self or admin)|
+| Method | Endpoint            | Description                       |
+| ------ | ------------------- | --------------------------------- |
+| GET    | `/users`            | List all users (**admin only**)   |
+| GET    | `/users/{username}` | Get user info (**self or admin**) |
 
 ### Pets
 
-| Method | Endpoint           | Description                         |
-|--------|------------------|-------------------------------------|
-| POST   | `/pets`            | Create a new pet                     |
-| GET    | `/pets`            | List pets (user sees own, admin sees all) |
-| GET    | `/pets/{id}`       | Get pet details (owner/admin)        |
-| PUT    | `/pets/{id}`       | Update pet (owner/admin)             |
-| DELETE | `/pets/{id}`       | Delete pet (owner/admin)             |
+| Method | Endpoint     | Description                                   |
+| ------ | ------------ | --------------------------------------------- |
+| POST   | `/pets`      | Create a new pet                              |
+| GET    | `/pets`      | List pets (**user sees own, admin sees all**) |
+| GET    | `/pets/{id}` | Get pet details (**owner/admin**)             |
+| PUT    | `/pets/{id}` | Update pet (**owner/admin**)                  |
+| DELETE | `/pets/{id}` | Delete pet (**owner/admin**)                  |
 
 ---
 
 ## 🔐 Roles & Authorization
 
 | Role         | Permissions                                   |
-|--------------|-----------------------------------------------|
-| `ROLE_USER`  | Access only **their own** pets               |
-| `ROLE_ADMIN` | Full access to **all** pets                  |
+| ------------ | --------------------------------------------- |
+| `ROLE_USER`  | Access **their own** pets and user info only  |
+| `ROLE_ADMIN` | Full access to **all** pets and all user info |
 
-> JWT token required for all protected endpoints:  
+> JWT token required for all protected endpoints:
 > `Authorization: Bearer <JWT_TOKEN>`
 
 ---
 
 ## 🧪 Testing
 
-The project includes **unit and integration tests**:
+The project includes **unit and integration tests**, using H2 in-memory database:
 
 ### Unit Tests
-- `AuthControllerTest` – tests user registration and login endpoints.
-- `AuthServiceImplTest` – tests authentication logic, password encoding, and error cases.
-- `JwtUtilTest` – tests token generation, validation, username/role extraction, and error handling.
-- `PetControllerUnitTest` – verifies pet endpoint logic in isolation.
-- `PetServiceImplTest` – tests pet service CRUD operations and role-based access.
-- `PetRepositoryTest` – tests repository methods like save, findByOwner, delete.
+
+* `AuthControllerTest` – user registration/login endpoints.
+* `AuthServiceImplTest` – authentication logic, password encoding, error cases.
+* `JwtUtilTest` – token generation, validation, username/role extraction, error handling.
+* `PetControllerUnitTest` – verifies pet endpoint logic in isolation.
+* `PetServiceImplTest` – CRUD operations and role-based access.
+* `PetRepositoryTest` – repository methods like save, findByOwner, delete.
 
 ### Integration Tests
-- `PetControllerIntegrationTest` – full API flow including CRUD operations, owner/admin access, and JWT auth.
+
+* `PetControllerIntegrationTest` – full API flow including CRUD operations, owner/admin access, and JWT auth.
 
 🧪 Run tests:
 
@@ -202,8 +206,8 @@ The project includes **unit and integration tests**:
 
 ## 📚 Swagger/OpenAPI
 
-- **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)  
-- **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+* **Swagger UI:** [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+* **OpenAPI JSON:** [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
 
 ---
 
@@ -223,13 +227,12 @@ docker run -p 8080:8080 virtual-pet-app
 
 3. Access app:
 
-- [http://localhost:8080](http://localhost:8080)  
-- Swagger docs: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+* [http://localhost:8080](http://localhost:8080)
+* Swagger docs: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
 
 ---
 
 ## 👨‍💻 Author
 
-**Adrià Vargas**  
+**Adrià Vargas**
 🔗 [GitHub](https://github.com/AdriaVH)
-
